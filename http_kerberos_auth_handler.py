@@ -24,7 +24,7 @@ import urllib2 as u2
 import kerberos as k
 
 def getLogger():
-    log = logging.getLogger("http_negotiate_auth_handler")
+    log = logging.getLogger("http_kerberos_auth_handler")
     handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     handler.setFormatter(formatter)
@@ -33,8 +33,8 @@ def getLogger():
 
 log = getLogger()
 
-class HTTPNegotiateAuthHandler(u2.BaseHandler):
-    """auth handler for urllib2 that does HTTP Negotiate Authentication
+class HTTPKerberosAuthHandler(u2.BaseHandler):
+    """auth handler for urllib2 that does Kerberos HTTP Negotiate Authentication
     """
 
     rx = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
@@ -44,7 +44,7 @@ class HTTPNegotiateAuthHandler(u2.BaseHandler):
         authreq = headers.get('www-authenticate', None)
 
         if authreq:
-            mo = HTTPNegotiateAuthHandler.rx.search(authreq)
+            mo = HTTPKerberosAuthHandler.rx.search(authreq)
             if mo:
                 return mo.group(1)
             else:
@@ -66,7 +66,7 @@ class HTTPNegotiateAuthHandler(u2.BaseHandler):
             return None
 
         if self.retried > 5:
-            raise HTTPError(req.get_full_url(), 401, "negotiate auth failed",
+            raise HTTPError(req.get_full_url(), 401, "kerberos negotiate auth failed",
                             headers, None)
 
         self.retried += 1
@@ -129,7 +129,7 @@ def test():
     log.setLevel(logging.DEBUG)
     log.info("starting test")
     opener = u2.build_opener()
-    opener.add_handler(HTTPNegotiateAuthHandler())
+    opener.add_handler(HTTPKerberosAuthHandler())
     resp = opener.open(sys.argv[1])
     print dir(resp), resp.info(), resp.code
     
