@@ -6,3 +6,5 @@ keywords = hg_keywords.keywords(
     "$rev$",
     "$tags$"
     )
+
+version = "dev_%s_%s" % tuple([keywords[x] for x in 'rev', 'node'])

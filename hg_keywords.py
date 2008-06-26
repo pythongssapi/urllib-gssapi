@@ -1,6 +1,6 @@
 import re
 
-keyword_rx = re.compile('^\$(\w+)\:\s+(\W+)\s*\$$')
+keyword_rx = re.compile('^\$(\w+)\:\s+(\S*)\s*\$$')
 
 # returns tuple (key, value)
 # returns None if kwstring is not a keyword expansion
@@ -16,4 +16,6 @@ def extract_keyvalue(kwstring):
 
     
 def keywords(*kwstrings):
-    dict([extract_kwvalue(kws) for kws in kwstrings])
+    keyvalues = [extract_keyvalue(kws) for kws in kwstrings]
+    compacted_keyvalues = [kv for kv in keyvalues if kv is not None]
+    return dict(compacted_keyvalues)
