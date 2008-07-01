@@ -26,7 +26,7 @@ setup(
     author = "Tim Olsen",
     author_email = "tolsen@limespot.com",
     description = "Kerberos over HTTP Negotiate/SPNEGO support for urllib2",
-    license = "GPLv3",
+    license = "Apache 2.0",
     url = "http://limedav.com/hg/urllib2_kerberos/",
     keywords = "urllib2 kerberos http negotiate spnego",
     
