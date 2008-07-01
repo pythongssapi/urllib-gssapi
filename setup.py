@@ -1,10 +1,10 @@
 from setuptools import setup
-import version_detect
+import hgvers
 
 setup(
     name = "urllib2_kerberos",
-    version = version_detect.version,
-    py_modules = [ 'urllib2_kerberos' ],
+    version = hgvers.version,
+    py_modules = [ 'urllib2_kerberos', 'hgvers' ],
 
 #    install_requires = ['kerberos'],
 
