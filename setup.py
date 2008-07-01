@@ -19,7 +19,7 @@ import hgvers
 setup(
     name = "urllib2_kerberos",
     version = hgvers.version,
-    py_modules = [ 'urllib2_kerberos', 'hgvers' ],
+    py_modules = [ 'urllib2_kerberos' ],
 
 #    install_requires = ['kerberos'],
 
