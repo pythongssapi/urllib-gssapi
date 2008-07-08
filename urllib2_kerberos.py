@@ -66,11 +66,13 @@ class HTTPKerberosAuthHandler(u2.BaseHandler):
             self.retried = 0
             return None
 
-        if self.retried > 5:
-            raise HTTPError(req.get_full_url(), 401, "kerberos negotiate auth failed",
-                            headers, None)
+        if self.retried > 0:
+            raise u2.HTTPError(req.get_full_url(), 401, "kerberos negotiate auth failed",
+                               headers, None)
 
         self.retried += 1
+
+        log.debug("retry count: %d" % self.retried)
 
         log.debug("req.get_host() returned %s" % req.get_host())
         result, self.context = k.authGSSClientInit("HTTP@%s" % req.get_host())
@@ -105,7 +107,9 @@ class HTTPKerberosAuthHandler(u2.BaseHandler):
 
     def clean_context(self):
         if self.context is not None:
+            log.debug("cleaning context")
             k.authGSSClientClean(self.context)
+            self.context = None
 
     def http_error_401(self, req, fp, code, msg, headers):
         log.debug("inside http_error_401")
@@ -122,9 +126,14 @@ class HTTPKerberosAuthHandler(u2.BaseHandler):
             self.authenticate_server(resp.info())
 
             return resp
+
+        except k.GSSError, e:
+            log.critical("GSSAPI Error: %s/%s" % (e[0][0], e[1][0]))
+            return None
         
         finally:
             self.clean_context()
+            self.retried = 0
 
 def test():
     log.setLevel(logging.DEBUG)
