@@ -34,14 +34,14 @@ def getLogger():
 
 log = getLogger()
 
-class AbstractKerberosAuthHandler(u2.AbstractDigestAuthHandler):
+class AbstractKerberosAuthHandler:
     """auth handler for urllib2 that does Kerberos HTTP Negotiate Authentication
     """
 
-    def negotiate_value(self, auth_header, headers):
+    def negotiate_value(self, headers):
         """checks for "Negotiate" in proper auth header
         """
-        authreq = headers.get(auth_header, None)
+        authreq = headers.get(self.auth_header, None)
 
         if authreq:
             rx = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
@@ -52,7 +52,7 @@ class AbstractKerberosAuthHandler(u2.AbstractDigestAuthHandler):
                 log.debug("regex failed on: %s" % authreq)
 
         else:
-            log.debug("%s header not found" % auth_header)
+            log.debug("%s header not found" % self.auth_header)
 
         return None
 
@@ -66,7 +66,7 @@ class AbstractKerberosAuthHandler(u2.AbstractDigestAuthHandler):
         log.debug("retry count: %d" % self.retried)
 
         log.debug("req.get_host() returned %s" % req.get_host())
-        result, self.context = k.authGSSClientInit("HTTP@%s" % req.get_host().rpartition(":")[0])
+        result, self.context = k.authGSSClientInit("HTTP@%s" % req.get_host()) #.rpartition(":")[0])
 
         if result < 1:
             log.warning("authGSSClientInit returned result %d" % result)
@@ -95,7 +95,10 @@ class AbstractKerberosAuthHandler(u2.AbstractDigestAuthHandler):
 
         if k.authGSSClientStep(self.context, neg_value) < 1:
             #TODO pyflakes flagged this so I commented it out --Gar
-            #log.critical("mutual auth failed: authGSSClientStep returned result %d" % result)
+            #
+            # this is a critical security warning
+            # uncommenting.  will change to a raise soon --Tim
+            log.critical("mutual auth failed: authGSSClientStep returned result %d" % result)
             pass
 
     def clean_context(self):
@@ -104,67 +107,69 @@ class AbstractKerberosAuthHandler(u2.AbstractDigestAuthHandler):
             k.authGSSClientClean(self.context)
             self.context = None
 
-    def http_error_auth_reqed(self, auth_header, host, req, headers):
-        neg_value = self.negotiate_values(auth_header, headers) #Check for appropriate auth_header
+    def http_error_auth_reqed(self, host, req, headers):
+        neg_value = self.negotiate_value(headers) #Check for auth_header
         if neg_value is not None:
             if not self.retried > 0:
-                return self.retry_http_kerberos_auth(req, headers, auth_header, neg_value)
+                return self.retry_http_kerberos_auth(req, headers, neg_value)
             else:
                 return None
         else:
             self.retried = 0
 
-        def retry_http_kerberos_auth(self, req, headers, auth_header, neg_value):
-            try:
-                neg_hdr = self.generate_request_header(req, headers, neg_value)
+    def retry_http_kerberos_auth(self, req, headers, neg_value):
+        try:
+            neg_hdr = self.generate_request_header(req, headers, neg_value)
 
-                if neg_hdr is None:
-                    log.debug("neg_hdr was None")
-                    return None
-
-                req.add_unredirected_header(self.auth_header, neg_hdr)
-                resp = self.parent.open(req)
-
-                self.authenticate_server(resp.info())
-
-                return resp
-
-            except k.GSSError, e:
-                log.critical("GSSAPI Error: %s/%s" % (e[0][0], e[1][0]))
+            if neg_hdr is None:
+                log.debug("neg_hdr was None")
                 return None
 
-            finally:
-                self.clean_context()
-                self.retried = 0
+            req.add_unredirected_header(self.authz_header, neg_hdr)
+            resp = self.parent.open(req)
+
+            self.authenticate_server(resp.info())
+
+            return resp
+
+        except k.GSSError, e:
+            log.critical("GSSAPI Error: %s/%s" % (e[0][0], e[1][0]))
+            return None
+
+        finally:
+            self.clean_context()
+            self.retried = 0
 
 class ProxyKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
     """Kerberos Negotiation handler for HTTP proxy auth
     """
 
-    auth_header = 'Proxy-Authorization'
+    authz_header = 'Proxy-Authorization'
+    auth_header = 'proxy-authenticate'
 
     handler_order = 480 # before Digest auth
 
     def http_error_407(self, req, fp, code, msg, headers):
         log.debug("inside http_error_407")
         host = req.get_host()
-        retry = self.http_error_auth_reqed('proxy_authenticate', host, req, headers)
-        self.reset_retry_count()
+        retry = self.http_error_auth_reqed(host, req, headers)
+        self.retried = 0
         return retry
 
 class HTTPKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
     """Kerberos Negotiation handler for HTTP auth
     """
 
-    auth_header = 'Authorization'
+    authz_header = 'Authorization'
+    auth_header = 'www-authenticate'
 
     handler_order = 480 # before Digest auth
 
     def http_error_401(self, req, fp, code, msg, headers):
         log.debug("inside http_error_401")
         host = req.get_host()
-        retry = self.http_error_auth_reqed('www-authenticate', host, req, headers)
-        self.reset_retry_count()
+        retry = self.http_error_auth_reqed(host, req, headers)
+        self.retried = 0
         return retry
 
 def test():
