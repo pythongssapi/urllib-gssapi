@@ -62,11 +62,15 @@ class AbstractKerberosAuthHandler:
 
     def generate_request_header(self, req, headers, neg_value):
         self.retried += 1
-
         log.debug("retry count: %d" % self.retried)
 
-        log.debug("req.get_host() returned %s" % req.get_host())
-        result, self.context = k.authGSSClientInit("HTTP@%s" % req.get_host()) #.rpartition(":")[0])
+        host = req.get_host()
+        log.debug("req.get_host() returned %s" % host)
+
+        tail, sep, head = host.rpartition(':')
+        domain = tail if tail else head
+                
+        result, self.context = k.authGSSClientInit("HTTP@%s" % domain)
 
         if result < 1:
             log.warning("authGSSClientInit returned result %d" % result)
