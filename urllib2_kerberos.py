@@ -97,11 +97,11 @@ class AbstractKerberosAuthHandler:
             log.critical("mutual auth failed. No negotiate header")
             return None
 
-        if k.authGSSClientStep(self.context, neg_value) < 1:
-            #TODO pyflakes flagged this so I commented it out --Gar
-            #
+        result = k.authGSSClientStep(self.context, neg_value)
+
+        if  result < 1:
             # this is a critical security warning
-            # uncommenting.  will change to a raise soon --Tim
+            # should change to a raise --Tim
             log.critical("mutual auth failed: authGSSClientStep returned result %d" % result)
             pass
 
