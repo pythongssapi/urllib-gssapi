@@ -67,8 +67,7 @@ class AbstractKerberosAuthHandler:
         host = req.get_host()
         log.debug("req.get_host() returned %s" % host)
 
-        tail, sep, head = host.rpartition(':')
-        domain = tail if tail else head
+        domain = host.rsplit(':', 1)[0]
                 
         result, self.context = k.authGSSClientInit("HTTP@%s" % domain)
 
@@ -137,12 +136,13 @@ class AbstractKerberosAuthHandler:
             return resp
 
         except k.GSSError, e:
+            self.clean_context()
+            self.retried = 0
             log.critical("GSSAPI Error: %s/%s" % (e[0][0], e[1][0]))
             return None
 
-        finally:
-            self.clean_context()
-            self.retried = 0
+        self.clean_context()
+        self.retried = 0
 
 class ProxyKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
     """Kerberos Negotiation handler for HTTP proxy auth
