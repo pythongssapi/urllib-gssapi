@@ -40,16 +40,7 @@ except ImportError:
                          "it is installed")
 
 
-def getLogger():
-    log = logging.getLogger("http_kerberos_auth_handler")
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    handler.setFormatter(formatter)
-    log.addHandler(handler)
-    return log
-
-
-log = getLogger()
+log = logging.getLogger("http_kerberos_auth_handler")
 
 
 class AbstractKerberosAuthHandler:
