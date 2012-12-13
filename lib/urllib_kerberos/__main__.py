@@ -12,7 +12,8 @@ except ImportError:
 
 
 def test():
-    log.setLevel(logging.DEBUG)
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
+                        level=logging.DEBUG)
     log.info("starting test")
     opener = urllib_request.build_opener()
     opener.add_handler(HTTPKerberosAuthHandler())
