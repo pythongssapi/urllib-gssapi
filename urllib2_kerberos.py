@@ -38,14 +38,15 @@ class AbstractKerberosAuthHandler:
     """auth handler for urllib2 that does Kerberos HTTP Negotiate Authentication
     """
 
+    neg_regex = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
+
     def negotiate_value(self, headers):
         """checks for "Negotiate" in proper auth header
         """
         authreq = headers.get(self.auth_header, None)
 
         if authreq:
-            rx = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
-            mo = rx.search(authreq)
+            mo = self.neg_regex.search(authreq)
             if mo:
                 return mo.group(1)
             else:
