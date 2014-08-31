@@ -39,8 +39,17 @@ def getLogger():
 log = getLogger()
 
 class AbstractKerberosAuthHandler:
-    """auth handler for urllib2 that does Kerberos HTTP Negotiate Authentication
-    """
+    """auth handler for urllib2 that does Kerberos HTTP Negotiate Authentication"""
+
+    def __init__(self, password_mgr=None):
+        """Initialize an instance of a AbstractKerberosAuthHandler."""
+        self.retried = 0
+        self.context = None
+
+        if password_mgr is None:
+            password_mgr = u2.HTTPPasswordMgr()
+        self.passwd = password_mgr
+        self.add_password = self.passwd.add_password
 
     neg_regex = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
 
@@ -62,10 +71,6 @@ class AbstractKerberosAuthHandler:
 
         return None
 
-    def __init__(self):
-        self.retried = 0
-        self.context = None
-
     def generate_request_header(self, req, headers, neg_value):
         self.retried += 1
         log.debug("retry count: %d" % self.retried)
@@ -74,8 +79,11 @@ class AbstractKerberosAuthHandler:
         log.debug("req.get_host() returned %s" % host)
 
         domain = host.rsplit(':', 1)[0]
-                
-        result, self.context = k.authGSSClientInit("HTTP@%s" % domain)
+
+        # Check for alternate credentials for the requested url
+        user, password = self.passwd.find_user_password(None, req.get_full_url())
+
+        result, self.context = k.authGSSClientInit("HTTP@%s" % domain, principal=user, password=password)
 
         if result < 1:
             log.warning("authGSSClientInit returned result %d" % result)
@@ -181,6 +189,7 @@ class HTTPKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
         retry = self.http_error_auth_reqed(host, req, headers)
         self.retried = 0
         return retry
+
 
 def test():
     log.setLevel(logging.DEBUG)
