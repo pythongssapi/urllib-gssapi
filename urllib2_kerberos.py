@@ -22,7 +22,11 @@ import logging
 import sys
 import urllib2 as u2
 
-import kerberos as k
+try:
+    import kerberos as k
+except ImportError:
+    if sys.platform == 'win32':
+        import kerberos_sspi as k
 
 def getLogger():
     log = logging.getLogger("http_kerberos_auth_handler")
