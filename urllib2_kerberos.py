@@ -17,10 +17,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
+
 import re
 import logging
 import sys
-import urllib2 as u2
+try:
+    import urllib2 as u2
+    from urlparse import urlparse
+except ImportError:
+    import urllib.request as u2
+    from urllib.parse import urlparse
 
 try:
     import kerberos as k
@@ -75,8 +82,8 @@ class AbstractKerberosAuthHandler:
         self.retried += 1
         log.debug("retry count: %d" % self.retried)
 
-        host = req.get_host()
-        log.debug("req.get_host() returned %s" % host)
+        host = urlparse(req.get_full_url()).netloc
+        log.debug("urlparse(req.get_full_url()).netloc returned %s" % host)
 
         domain = host.rsplit(':', 1)[0]
 
@@ -105,7 +112,7 @@ class AbstractKerberosAuthHandler:
 
         response = k.authGSSClientResponse(self.context)
         log.debug("authGSSClientResponse() succeeded")
-        
+
         return "Negotiate %s" % response
 
     def authenticate_server(self, headers):
@@ -149,11 +156,12 @@ class AbstractKerberosAuthHandler:
             req.add_unredirected_header(self.authz_header, neg_hdr)
             resp = self.parent.open(req)
 
-            self.authenticate_server(resp.info())
+            if resp.getcode() != 200:
+                self.authenticate_server(resp.info())
 
             return resp
 
-        except k.GSSError, e:
+        except k.GSSError as e:
             self.clean_context()
             self.retried = 0
             log.critical("GSSAPI Error: %s/%s" % (e[0][0], e[1][0]))
@@ -173,7 +181,7 @@ class ProxyKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
 
     def http_error_407(self, req, fp, code, msg, headers):
         log.debug("inside http_error_407")
-        host = req.get_host()
+        host = urlparse(req.get_full_url()).netloc
         retry = self.http_error_auth_reqed(host, req, headers)
         self.retried = 0
         return retry
@@ -189,7 +197,7 @@ class HTTPKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
 
     def http_error_401(self, req, fp, code, msg, headers):
         log.debug("inside http_error_401")
-        host = req.get_host()
+        host = urlparse(req.get_full_url()).netloc
         retry = self.http_error_auth_reqed(host, req, headers)
         self.retried = 0
         return retry
@@ -201,8 +209,8 @@ def test():
     opener = u2.build_opener()
     opener.add_handler(HTTPKerberosAuthHandler())
     resp = opener.open(sys.argv[1])
-    print dir(resp), resp.info(), resp.code
-    
+    print(dir(resp), resp.info(), resp.code)
+
 
 if __name__ == '__main__':
     test()
