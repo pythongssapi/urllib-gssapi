@@ -22,18 +22,22 @@ from __future__ import print_function
 import re
 import logging
 import sys
+
 try:
-    import urllib2 as u2
     from urlparse import urlparse
+    from urllib2 import BaseHandler, HTTPPasswordMgr
 except ImportError:
-    import urllib.request as u2
     from urllib.parse import urlparse
+    from urllib.request import BaseHandler, HTTPPasswordMgr
 
 try:
     import kerberos as k
 except ImportError:
     if sys.platform == 'win32':
         import kerberos_sspi as k
+    else:
+        raise SystemExit("Could not import kerberos library. Please ensure "
+                         "it is installed")
 
 
 def getLogger():
@@ -58,7 +62,7 @@ class AbstractKerberosAuthHandler:
         self.context = None
 
         if password_mgr is None:
-            password_mgr = u2.HTTPPasswordMgr()
+            password_mgr = HTTPPasswordMgr()
         self.passwd = password_mgr
         self.add_password = self.passwd.add_password
 
@@ -178,7 +182,7 @@ class AbstractKerberosAuthHandler:
         self.retried = 0
 
 
-class ProxyKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
+class ProxyKerberosAuthHandler(BaseHandler, AbstractKerberosAuthHandler):
     """Kerberos Negotiation handler for HTTP proxy auth
     """
 
@@ -195,7 +199,7 @@ class ProxyKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
         return retry
 
 
-class HTTPKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
+class HTTPKerberosAuthHandler(BaseHandler, AbstractKerberosAuthHandler):
     """Kerberos Negotiation handler for HTTP auth
     """
 
@@ -210,16 +214,3 @@ class HTTPKerberosAuthHandler(u2.BaseHandler, AbstractKerberosAuthHandler):
         retry = self.http_error_auth_reqed(host, req, headers)
         self.retried = 0
         return retry
-
-
-def test():
-    log.setLevel(logging.DEBUG)
-    log.info("starting test")
-    opener = u2.build_opener()
-    opener.add_handler(HTTPKerberosAuthHandler())
-    resp = opener.open(sys.argv[1])
-    print(dir(resp), resp.info(), resp.code)
-
-
-if __name__ == '__main__':
-    test()
