@@ -14,12 +14,14 @@
 # limitations under the License.
 
 from setuptools import setup
-import hgvers
+from setuptools import find_packages
+
+exec(open('lib/urllib_kerberos/version.py').read())
 
 setup(
-    name = "urllib2_kerberos",
-    version = hgvers.version,
-    py_modules = [ 'urllib2_kerberos' ],
+    name = "urllib_kerberos",
+    version = __version__,
+    py_modules = [ 'urllib_kerberos' ],
 
 #    install_requires = ['kerberos'],
 
@@ -27,9 +29,11 @@ setup(
     author_email = "tolsen@limespot.com",
     description = "Kerberos over HTTP Negotiate/SPNEGO support for urllib2",
     license = "Apache 2.0",
-    url = "http://limedav.com/hg/urllib2_kerberos/",
+    url = "http://github.com/willthames/urllib_kerberos/",
     keywords = "urllib2 kerberos http negotiate spnego",
-    
+    package_dir={'': 'lib'},
+    packages=find_packages('lib'),
+
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -42,6 +46,5 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: System :: Systems Administration :: Authentication/Directory'
         ]
-    
     )
 
