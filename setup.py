@@ -27,6 +27,8 @@ setup(
 
     author = "Tim Olsen",
     author_email = "tolsen@limespot.com",
+    maintainer = "Will Thames",
+    maintainer_email = "will@thames.id.au",
     description = "Kerberos over HTTP Negotiate/SPNEGO support for urllib2",
     license = "Apache 2.0",
     url = "http://github.com/willthames/urllib_kerberos/",
