@@ -82,8 +82,12 @@ class AbstractKerberosAuthHandler:
 
         # Check for alternate credentials for the requested url
         user, password = self.passwd.find_user_password(None, req.get_full_url())
+        kwargs = dict()
+        if user and password:
+            kwargs['principal'] = user
+            kwargs['password'] = password
 
-        result, self.context = k.authGSSClientInit("HTTP@%s" % domain, principal=user, password=password)
+        result, self.context = k.authGSSClientInit("HTTP@%s" % domain, **kwargs)
 
         if result < 1:
             log.warning("authGSSClientInit returned result %d" % result)
