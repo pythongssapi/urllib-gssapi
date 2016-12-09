@@ -43,10 +43,9 @@ class AbstractKerberosAuthHandler:
     def negotiate_value(self, headers):
         """checks for "Negotiate" in proper auth header
         """
-        authreqs = headers.getheaders(self.auth_header)
+        authreqs = headers.get(self.auth_header).split(',')
 
         if authreqs:
-
             for authreq in authreqs:
                 mo = self.neg_regex.search(authreq)
                 if mo:
