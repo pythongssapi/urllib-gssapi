@@ -38,4 +38,4 @@ class TestUrls(unittest.TestCase):
 
     def testGoogle(self):
         url = 'https://www.google.com'
-        response = urllib_request.Request(url)
+        urllib_request.Request(url)

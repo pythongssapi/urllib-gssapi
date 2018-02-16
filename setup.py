@@ -17,23 +17,23 @@
 from setuptools import setup
 from setuptools import find_packages
 
-exec(open('lib/urllib_gssapi/version.py').read())
+version = "0.2.0"
 
 setup(
-    name = "urllib_gssapi",
-    version = __version__,
-    py_modules = [ 'urllib_gssapi' ],
+    name="urllib_gssapi",
+    version=version,
+    py_modules=['urllib_gssapi'],
 
-    author = "Tim Olsen, Will Thames, and The Python GSSAPI Team",
-    author_email = "rharwood@redhat.com",
-    description = "GSSAPI over HTTP Negotiate/SPNEGO support for urllib/urllib2",
-    license = "Apache 2.0",
-    url = "http://github.com/pythongssapi/urllib-gssapi/",
-    keywords = "urllib2 kerbero http negotiate spnego gssapi",
+    author="Tim Olsen, Will Thames, and The Python GSSAPI Team",
+    author_email="rharwood@redhat.com",
+    description="GSSAPI over HTTP Negotiate/SPNEGO support for urllib/urllib2",
+    license="Apache 2.0",
+    url="http://github.com/pythongssapi/urllib-gssapi/",
+    keywords="urllib2 kerbero http negotiate spnego gssapi",
     package_dir={'': 'lib'},
     packages=find_packages('lib'),
 
-    classifiers = [
+    classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
