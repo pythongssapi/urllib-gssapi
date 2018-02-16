@@ -1,9 +1,10 @@
 #!/usr/bin/python
 
-# urllib2 with kerberos proof of concept
+# urllib/urllib2 support for GSSAPI/SPNEGO
 
 # Copyright 2008 Lime Nest LLC
 # Copyright 2008 Lime Spot LLC
+# Copyright 2018 The Python GSSAPI Team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

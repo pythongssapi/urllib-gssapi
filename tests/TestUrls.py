@@ -19,7 +19,7 @@
 # THE SOFTWARE.
 
 import unittest
-import urllib_kerberos
+import urllib_gssapi
 
 try:
     # python3
@@ -32,7 +32,7 @@ except ImportError:
 class TestUrls(unittest.TestCase):
 
     def setUp(self):
-        handler = urllib_kerberos.HTTPKerberosAuthHandler()
+        handler = urllib_gssapi.HTTPKerberosAuthHandler()
         opener = urllib_request.build_opener(handler)
         urllib_request.install_opener(opener)
 

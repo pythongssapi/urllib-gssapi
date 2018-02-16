@@ -1,5 +1,6 @@
 # Copyright 2008 Lime Nest LLC
 # Copyright 2008 Lime Spot LLC
+# Copyright 2018 The Python GSSAPI Team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,23 +17,19 @@
 from setuptools import setup
 from setuptools import find_packages
 
-exec(open('lib/urllib_kerberos/version.py').read())
+exec(open('lib/urllib_gssapi/version.py').read())
 
 setup(
-    name = "urllib_kerberos",
+    name = "urllib_gssapi",
     version = __version__,
-    py_modules = [ 'urllib_kerberos' ],
+    py_modules = [ 'urllib_gssapi' ],
 
-#    install_requires = ['kerberos'],
-
-    author = "Tim Olsen",
-    author_email = "tolsen@limespot.com",
-    maintainer = "Will Thames",
-    maintainer_email = "will@thames.id.au",
-    description = "Kerberos over HTTP Negotiate/SPNEGO support for urllib2",
+    author = "Tim Olsen, Will Thames, and The Python GSSAPI Team",
+    author_email = "rharwood@redhat.com",
+    description = "GSSAPI over HTTP Negotiate/SPNEGO support for urllib/urllib2",
     license = "Apache 2.0",
-    url = "http://github.com/willthames/urllib_kerberos/",
-    keywords = "urllib2 kerberos http negotiate spnego",
+    url = "http://github.com/pythongssapi/urllib-gssapi/",
+    keywords = "urllib2 kerbero http negotiate spnego gssapi",
     package_dir={'': 'lib'},
     packages=find_packages('lib'),
 
@@ -49,4 +46,3 @@ setup(
         'Topic :: System :: Systems Administration :: Authentication/Directory'
         ]
     )
-
