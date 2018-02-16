@@ -1,4 +1,5 @@
 # Copyright (c) 2016 Will Thames <will@thames.id.au>
+# Copyright (c) 2018 The Python GSSAPI Team
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +20,7 @@
 # THE SOFTWARE.
 
 import unittest
+
 import urllib_gssapi
 
 try:
@@ -30,12 +32,11 @@ except ImportError:
 
 
 class TestUrls(unittest.TestCase):
-
     def setUp(self):
         handler = urllib_gssapi.HTTPSPNEGOAuthHandler()
         opener = urllib_request.build_opener(handler)
         urllib_request.install_opener(opener)
 
-    def testGoogle(self):
-        url = 'https://www.google.com'
-        urllib_request.Request(url)
+    def test_non_SPNEGO(self):
+        r = urllib_request.urlopen("https://mivehind.net/")
+        r.read()
