@@ -22,7 +22,10 @@ from __future__ import print_function
 
 import re
 import logging
-import sys
+
+from base64 import b64encode, b64decode
+
+import gssapi
 
 try:
     from urlparse import urlparse
@@ -31,25 +34,17 @@ except ImportError:
     from urllib.parse import urlparse
     from urllib.request import BaseHandler
 
-try:
-    import kerberos as k
-except ImportError:
-    if sys.platform == 'win32':
-        import kerberos_sspi as k
-    else:
-        raise SystemExit("Could not import kerberos library. Please ensure "
-                         "it is installed")
+log = logging.getLogger("http_gssapi_auth_handler")
 
 
-log = logging.getLogger("http_kerberos_auth_handler")
+class AbstractSPNEGOAuthHandler:
+    """urllib/urllib2 auth handler performing GSSAPI/SPNEGO HTTP Negotiate
+Authentication
 
-
-class AbstractKerberosAuthHandler:
-    """auth handler for urllib2 that does Kerberos
-       HTTP Negotiate Authentication"""
+    """
 
     def __init__(self):
-        """Initialize an instance of a AbstractKerberosAuthHandler."""
+        """Initialize an instance of a AbstractSPNEGOAuthHandler."""
         self.retried = 0
         self.context = None
 
@@ -64,7 +59,7 @@ class AbstractKerberosAuthHandler:
             for authreq in authreqs:
                 mo = self.neg_regex.search(authreq)
                 if mo:
-                    return mo.group(1)
+                    return b64decode(mo.group(1))
                 else:
                     log.debug("regex failed on: %s" % authreq)
 
@@ -82,25 +77,15 @@ class AbstractKerberosAuthHandler:
 
         domain = host.rsplit(':', 1)[0]
 
-        result, self.context = k.authGSSClientInit("HTTP@%s" % domain)
-        if result < 1:
-            log.warning("authGSSClientInit returned result %d" % result)
-            return None
+        remote_name = gssapi.Name("HTTP@%s" % domain,
+                                  gssapi.NameType.hostbased_service)
+        self.context = gssapi.SecurityContext(usage="initiate",
+                                              name=remote_name)
+        log.debug("created GSSAPI context")
 
-        log.debug("authGSSClientInit() succeeded")
-
-        result = k.authGSSClientStep(self.context, neg_value)
-
-        if result < 0:
-            log.warning("authGSSClientStep returned result %d" % result)
-            return None
-
-        log.debug("authGSSClientStep() succeeded")
-
-        response = k.authGSSClientResponse(self.context)
-        log.debug("authGSSClientResponse() succeeded")
-
-        return "Negotiate %s" % response
+        response = self.context.step(neg_value)
+        log.debug("successfully stepped context")
+        return "Negotiate %s" % b64encode(response).decode()
 
     def authenticate_server(self, headers):
         neg_value = self.negotiate_value(headers)
@@ -108,32 +93,28 @@ class AbstractKerberosAuthHandler:
             log.critical("mutual auth failed. No negotiate header")
             return None
 
-        result = k.authGSSClientStep(self.context, neg_value)
-
-        if result < 1:
-            # this is a critical security warning
-            # should change to a raise --Tim
-            log.critical("mutual auth failed: authGSSClientStep "
-                         "returned result %d" % result)
+        token = self.context.step(neg_value)
+        if token is not None:
+            log.critical(
+                "mutual auth failed: authGSSClientStep returned a token")
             pass
 
     def clean_context(self):
         if self.context is not None:
             log.debug("cleaning context")
-            k.authGSSClientClean(self.context)
             self.context = None
 
     def http_error_auth_reqed(self, host, req, headers):
         neg_value = self.negotiate_value(headers)  # Check for auth_header
         if neg_value is not None:
             if not self.retried > 0:
-                return self.retry_http_kerberos_auth(req, headers, neg_value)
+                return self.retry_http_gssapi_auth(req, headers, neg_value)
             else:
                 return None
         else:
             self.retried = 0
 
-    def retry_http_kerberos_auth(self, req, headers, neg_value):
+    def retry_http_gssapi_auth(self, req, headers, neg_value):
         try:
             neg_hdr = self.generate_request_header(req, headers, neg_value)
 
@@ -149,18 +130,18 @@ class AbstractKerberosAuthHandler:
 
             return resp
 
-        except k.GSSError as e:
+        except gssapi.exceptions.GSSError as e:
             self.clean_context()
             self.retried = 0
-            log.critical("GSSAPI Error: %s/%s" % (e[0][0], e[1][0]))
+            log.critical("GSSAPI Error: %s" % e.gen_message())
             return None
 
         self.clean_context()
         self.retried = 0
 
 
-class ProxyKerberosAuthHandler(BaseHandler, AbstractKerberosAuthHandler):
-    """Kerberos Negotiation handler for HTTP proxy auth
+class ProxySPNEGOAuthHandler(BaseHandler, AbstractSPNEGOAuthHandler):
+    """SPNEGO Negotiation handler for HTTP proxy auth
     """
 
     authz_header = 'Proxy-Authorization'
@@ -176,8 +157,8 @@ class ProxyKerberosAuthHandler(BaseHandler, AbstractKerberosAuthHandler):
         return retry
 
 
-class HTTPKerberosAuthHandler(BaseHandler, AbstractKerberosAuthHandler):
-    """Kerberos Negotiation handler for HTTP auth
+class HTTPSPNEGOAuthHandler(BaseHandler, AbstractSPNEGOAuthHandler):
+    """SPNEGO Negotiation handler for HTTP auth
     """
 
     authz_header = 'Authorization'

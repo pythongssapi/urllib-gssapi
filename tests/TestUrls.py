@@ -32,7 +32,7 @@ except ImportError:
 class TestUrls(unittest.TestCase):
 
     def setUp(self):
-        handler = urllib_gssapi.HTTPKerberosAuthHandler()
+        handler = urllib_gssapi.HTTPSPNEGOAuthHandler()
         opener = urllib_request.build_opener(handler)
         urllib_request.install_opener(opener)
 
