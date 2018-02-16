@@ -1,0 +1,11 @@
+language: python
+python:
+    - "2.7"
+    - "3.4"
+    - "3.6"
+
+install:
+    - bash -ex .travis.install.sh
+
+script:
+     - bash -ex .travis.sh
