@@ -26,10 +26,10 @@ import sys
 
 try:
     from urlparse import urlparse
-    from urllib2 import BaseHandler, HTTPPasswordMgr
+    from urllib2 import BaseHandler
 except ImportError:
     from urllib.parse import urlparse
-    from urllib.request import BaseHandler, HTTPPasswordMgr
+    from urllib.request import BaseHandler
 
 try:
     import kerberos as k
@@ -48,15 +48,10 @@ class AbstractKerberosAuthHandler:
     """auth handler for urllib2 that does Kerberos
        HTTP Negotiate Authentication"""
 
-    def __init__(self, password_mgr=None):
+    def __init__(self):
         """Initialize an instance of a AbstractKerberosAuthHandler."""
         self.retried = 0
         self.context = None
-
-        if password_mgr is None:
-            password_mgr = HTTPPasswordMgr()
-        self.passwd = password_mgr
-        self.add_password = self.passwd.add_password
 
     neg_regex = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
 
@@ -87,17 +82,7 @@ class AbstractKerberosAuthHandler:
 
         domain = host.rsplit(':', 1)[0]
 
-        # Check for alternate credentials for the requested url
-        user, password = self.passwd.find_user_password(None,
-                                                        req.get_full_url())
-        kwargs = dict()
-        if user and password:
-            kwargs['principal'] = user
-            kwargs['password'] = password
-
-        result, self.context = k.authGSSClientInit("HTTP@%s" % domain,
-                                                   **kwargs)
-
+        result, self.context = k.authGSSClientInit("HTTP@%s" % domain)
         if result < 1:
             log.warning("authGSSClientInit returned result %d" % result)
             return None
