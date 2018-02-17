@@ -8,6 +8,8 @@ servers.
 urllib\_gssapi replaces urllib\_kerberos, and behaves the same way - just
 rename to HTTPSPNEGOAuthHandler.
 
+With an array of your other handlers (or just an empty one):
+
 ### Python 2
 
 ```Python
