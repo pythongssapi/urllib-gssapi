@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # urllib/urllib2 support for GSSAPI/SPNEGO
 
 # Copyright 2008 Lime Nest LLC
