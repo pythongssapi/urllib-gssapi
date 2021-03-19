@@ -15,7 +15,6 @@
 # limitations under the License.
 
 from setuptools import setup
-from setuptools import find_packages
 
 version = "1.0.1"
 
@@ -30,8 +29,7 @@ setup(
     license="Apache 2.0",
     url="http://github.com/pythongssapi/urllib-gssapi/",
     keywords="urllib2 kerbero http negotiate spnego gssapi",
-    package_dir={'': 'lib'},
-    packages=find_packages('lib'),
+    packages=['urllib_gssapi'],
 
     classifiers=[
         'Development Status :: 3 - Alpha',
