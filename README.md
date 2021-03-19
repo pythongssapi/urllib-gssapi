@@ -10,19 +10,6 @@ rename to HTTPSPNEGOAuthHandler.
 
 With an array of your other handlers (or just an empty one):
 
-### Python 2
-
-```Python
-import urllib2
-import urllib_gssapi
-
-handlers.append(urllib_gssapi.HTTPSPNEGOAuthHandler())
-
-opener = urllib2.build_opener(*handlers)
-urllib2.install_opener(opener)
-request = urllib2.Request(url, data)
-```
-
 ### Python 3
 
 ```Python
