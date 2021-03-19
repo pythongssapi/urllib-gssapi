@@ -46,7 +46,7 @@ Authentication
         self.retried = 0
         self.context = None
 
-    neg_regex = re.compile('(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
+    neg_regex = re.compile(r'(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
 
     def negotiate_value(self, headers):
         """checks for "Negotiate" in proper auth header
