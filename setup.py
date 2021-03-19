@@ -28,11 +28,10 @@ setup(
     description="GSSAPI over HTTP Negotiate/SPNEGO support for urllib/urllib2",
     license="Apache 2.0",
     url="http://github.com/pythongssapi/urllib-gssapi/",
-    keywords="urllib2 kerbero http negotiate spnego gssapi",
+    keywords="urllib2 kerberos http https negotiate spnego gssapi",
     packages=['urllib_gssapi'],
 
     classifiers=[
-        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
