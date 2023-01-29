@@ -43,7 +43,7 @@ Authentication
 
     def __init__(self):
         """Initialize an instance of a AbstractSPNEGOAuthHandler."""
-        self.retried = 0
+        self.pre_auth = False
         self.context = None
 
     neg_regex = re.compile(r'(?:.*,)*\s*Negotiate\s*([^,]*),?', re.I)
@@ -53,90 +53,59 @@ Authentication
         """
         authreqs = headers.get(self.auth_header).split(',')
 
-        if authreqs:
-            for authreq in authreqs:
-                mo = self.neg_regex.search(authreq)
-                if mo:
-                    return b64decode(mo.group(1))
-                else:
-                    log.debug("regex failed on: %s" % authreq)
-
-        else:
+        if not authreqs:
             log.debug("%s header not found" % self.auth_header)
+            return None
+
+        for authreq in authreqs:
+            mo = self.neg_regex.search(authreq)
+            if mo:
+                return b64decode(mo.group(1))
+            log.debug("regex failed on: %s" % authreq)
 
         return None
 
-    def generate_request_header(self, req, headers, neg_value):
-        self.retried += 1
-        log.debug("retry count: %d" % self.retried)
+    def generate_request_header(self, req, neg_value):
+        if not self.context:
+            host = urlparse(req.get_full_url()).netloc
+            log.debug("urlparse(req.get_full_url()).netloc returned %s" % host)
 
-        host = urlparse(req.get_full_url()).netloc
-        log.debug("urlparse(req.get_full_url()).netloc returned %s" % host)
+            domain = host.rsplit(':', 1)[0]
 
-        domain = host.rsplit(':', 1)[0]
-
-        remote_name = gssapi.Name("HTTP@%s" % domain,
-                                  gssapi.NameType.hostbased_service)
-        self.context = gssapi.SecurityContext(usage="initiate",
-                                              name=remote_name)
-        log.debug("created GSSAPI context")
+            remote_name = gssapi.Name("HTTP@%s" % domain, gssapi.NameType.hostbased_service)
+            self.context = gssapi.SecurityContext(usage="initiate", name=remote_name)
+            log.debug("created GSSAPI context")
 
         response = self.context.step(neg_value)
         log.debug("successfully stepped context")
+        if not response: return None
         return "Negotiate %s" % b64encode(response).decode()
 
-    def authenticate_server(self, headers):
-        neg_value = self.negotiate_value(headers)
-        if neg_value is None:
-            log.critical("mutual auth failed. No negotiate header")
-            return None
-
-        token = self.context.step(neg_value)
-        if token is not None:
-            log.critical(
-                "mutual auth failed: authGSSClientStep returned a token")
-            pass
-
-    def clean_context(self):
-        if self.context is not None:
-            log.debug("cleaning context")
-            self.context = None
-
     def http_error_auth_reqed(self, host, req, headers):
-        neg_value = self.negotiate_value(headers)  # Check for auth_header
-        if neg_value is not None:
-            if not self.retried > 0:
-                return self.retry_http_gssapi_auth(req, headers, neg_value)
-            else:
-                return None
-        else:
-            self.retried = 0
+        self.context = None
+        rcode = self.auth_code
+        neg_value = self.negotiate_value(headers)
+        if neg_value is None: return None
 
-    def retry_http_gssapi_auth(self, req, headers, neg_value):
-        try:
-            neg_hdr = self.generate_request_header(req, headers, neg_value)
-
-            if neg_hdr is None:
-                log.debug("neg_hdr was None")
-                return None
-
+        while (rcode == self.auth_code):
+            neg_hdr = self.generate_request_header(req, neg_value)
             req.add_unredirected_header(self.authz_header, neg_hdr)
+            if req.data and hasattr(req.data, 'seek'): req.data.seek(0)
             resp = self.parent.open(req)
+            rcode = resp.getcode()
+            neg_value = self.negotiate_value(resp.info())
 
-            if resp.getcode() != 200:
-                self.authenticate_server(resp.info())
+        self.context.step(neg_value)
+        self.pre_auth = self.context.complete
 
-            return resp
+        return resp
 
-        except gssapi.exceptions.GSSError as e:
-            self.clean_context()
-            self.retried = 0
-            log.critical("GSSAPI Error: %s" % e.gen_message())
-            return None
-
-        self.clean_context()
-        self.retried = 0
-
+    def http_request(self, req):
+        if self.pre_auth:
+            self.context = None
+            neg_hdr = self.generate_request_header(req, None)
+            req.add_unredirected_header(self.authz_header, neg_hdr)
+        return req
 
 class ProxySPNEGOAuthHandler(BaseHandler, AbstractSPNEGOAuthHandler):
     """SPNEGO Negotiation handler for HTTP proxy auth
@@ -144,6 +113,7 @@ class ProxySPNEGOAuthHandler(BaseHandler, AbstractSPNEGOAuthHandler):
 
     authz_header = 'Proxy-Authorization'
     auth_header = 'proxy-authenticate'
+    auth_code = 407
 
     handler_order = 480  # before Digest auth
 
@@ -151,9 +121,7 @@ class ProxySPNEGOAuthHandler(BaseHandler, AbstractSPNEGOAuthHandler):
         log.debug("inside http_error_407")
         host = urlparse(req.get_full_url()).netloc
         retry = self.http_error_auth_reqed(host, req, headers)
-        self.retried = 0
         return retry
-
 
 class HTTPSPNEGOAuthHandler(BaseHandler, AbstractSPNEGOAuthHandler):
     """SPNEGO Negotiation handler for HTTP auth
@@ -161,6 +129,7 @@ class HTTPSPNEGOAuthHandler(BaseHandler, AbstractSPNEGOAuthHandler):
 
     authz_header = 'Authorization'
     auth_header = 'www-authenticate'
+    auth_code = 401
 
     handler_order = 480  # before Digest auth
 
@@ -168,5 +137,4 @@ class HTTPSPNEGOAuthHandler(BaseHandler, AbstractSPNEGOAuthHandler):
         log.debug("inside http_error_401")
         host = urlparse(req.get_full_url()).netloc
         retry = self.http_error_auth_reqed(host, req, headers)
-        self.retried = 0
         return retry
